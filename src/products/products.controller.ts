@@ -1,7 +1,10 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Inject, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Inject, Query, BadRequestException, ParseIntPipe } from '@nestjs/common';
 import { PRODUCTS_SERVICE } from 'src/config';
-import { ClientProxy } from '@nestjs/microservices';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { PaginationDto } from 'src/common';
+import { firstValueFrom } from 'rxjs';
+import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 
 @Controller('products')
 export class ProductsController {
@@ -10,7 +13,8 @@ export class ProductsController {
   ) {}
 
   @Post()
-  createProduct(){
+  createProduct(@Body() createProductDto: CreateProductDto){
+    return this.productsClient.send({ cmd: 'createProduct' }, createProductDto );
     //return 'This action adds a new product';
   }
 
@@ -21,20 +25,44 @@ export class ProductsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string){
-    return 'This action returns product by id '+ id;
+  async findOne(@Param('id') id: string){
+    try {
+      const product = await firstValueFrom(
+        this.productsClient.send({ cmd: 'findOneProduct' }, { id } )
+      );
+      return product;
+
+    } catch (error) {
+      throw new RpcException(error);
+    }
   }
 
   @Delete(':id')
-  deleteProduct(@Param('id') id: string){
-    return 'This action deletes product by id '+ id;
+  async deleteProduct(@Param('id') id: string){
+    try {
+      const deleteProduct = await firstValueFrom(
+        this.productsClient.send({ cmd: 'deleteProduct' }, { id } )
+      );
+      return deleteProduct;
+
+    } catch (error) {
+      throw new RpcException(error);
+    }
   }
 
   @Patch(':id')
-  updateProduct(
-    @Param('id') id: string,
-    @Body() body: any
+  async updateProduct(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateProductDto: UpdateProductDto
   ){
-    return 'This action updates product by id '+ id;
+    try {
+      const updateProduct = await firstValueFrom(
+        this.productsClient.send({ cmd: 'updateProduct' }, { id, ...updateProductDto } )
+      );
+      return updateProduct;
+
+    } catch (error) {
+      throw new RpcException(error);
+    }
   }
 }

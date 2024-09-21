@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { envs } from './config';
 import { Logger, ValidationPipe } from '@nestjs/common';
+import { RcpCustomExceptionFilter } from './common';
 
 async function bootstrap() {
 
@@ -17,6 +18,8 @@ async function bootstrap() {
       transform: true,
     })
   );
+
+  app.useGlobalFilters(new RcpCustomExceptionFilter());
 
   await app.listen(envs.port);
 
